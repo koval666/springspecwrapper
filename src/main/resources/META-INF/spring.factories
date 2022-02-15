@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+ru.teadev.springspecwrapper.SpringSpecWrapperAutoConfiguration
