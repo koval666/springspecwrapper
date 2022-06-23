@@ -10,6 +10,7 @@ import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Subquery;
 import javax.persistence.metamodel.SingularAttribute;
 
+import static org.springframework.data.jpa.domain.Specification.not;
 import static org.springframework.data.jpa.domain.Specification.where;
 import static org.springframework.util.CollectionUtils.isEmpty;
 
@@ -25,6 +26,21 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
             query.distinct(true);
             return null;
         };
+    }
+
+    @Override
+    public <E> Specification<E> attributeIn(SingularAttribute<? super E, ?> attribute,
+                                            @Nullable Collection<?> value) {
+        return nullIfCollectionEmpty(value,
+
+                (root, query, criteriaBuilder) ->
+                        root.get(attribute).in(value));
+    }
+
+    @Override
+    public <E> Specification<E> attributeNotIn(SingularAttribute<? super E, ?> attribute,
+                                               Collection<?> value) {
+        return not(attributeIn(attribute, value));
     }
 
     @Override
@@ -44,6 +60,13 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
+    public <E, J1> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
+                                                         SingularAttribute<J1, ?> attribute,
+                                                         Collection<?> value) {
+        return not(joinedAttributeIn(joinInfo1, attribute, value));
+    }
+
+    @Override
     public <E, J1, J2> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
                                                           JoinInfo<J1, J2> joinInfo2,
                                                           SingularAttribute<J2, ?> attribute,
@@ -59,6 +82,14 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                         return join2.get(attribute).in(value);
                     }
                 });
+    }
+
+    @Override
+    public <E, J1, J2> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
+                                                             JoinInfo<J1, J2> joinInfo2,
+                                                             SingularAttribute<J2, ?> attribute,
+                                                             Collection<?> value) {
+        return not(joinedAttributeIn(joinInfo1, joinInfo2, attribute, value));
     }
 
     @Override
@@ -82,12 +113,12 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
-    public <E> Specification<E> attributeIn(SingularAttribute<? super E, ?> attribute,
-                                            @Nullable Collection<?> value) {
-        return nullIfCollectionEmpty(value,
-
-                (root, query, criteriaBuilder) ->
-                        root.get(attribute).in(value));
+    public <E, J1, J2, J3> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
+                                                                 JoinInfo<J1, J2> joinInfo2,
+                                                                 JoinInfo<J2, J3> joinInfo3,
+                                                                 SingularAttribute<J3, ?> attribute,
+                                                                 Collection<?> value) {
+        return not(joinedAttributeIn(joinInfo1, joinInfo2, joinInfo3, attribute, value));
     }
 
     @Override
