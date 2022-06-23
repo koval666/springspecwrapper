@@ -13,6 +13,38 @@ public interface BasicSpecifications {
 
     <E> Specification<E> distinct(Class<E> rootClass);
 
+    <E> Specification<E> attributeIsNull(SingularAttribute<? super E, ?> attribute);
+
+    <E> Specification<E> attributeIsNotNull(SingularAttribute<? super E, ?> attribute);
+
+
+    <E, J1> Specification<E> joinedAttributeIsNull(JoinInfo<? super E, J1> joinInfo1,
+                                                   SingularAttribute<J1, ?> attribute);
+
+
+    <E, J1> Specification<E> joinedAttributeIsNotNull(JoinInfo<? super E, J1> joinInfo1,
+                                                      SingularAttribute<J1, ?> attribute);
+
+    <E, J1, J2> Specification<E> joinedAttributeIsNull(JoinInfo<? super E, J1> joinInfo1,
+                                                       JoinInfo<J1, J2> joinInfo2,
+                                                       SingularAttribute<J2, ?> attribute);
+
+
+    <E, J1, J2> Specification<E> joinedAttributeIsNotNull(JoinInfo<? super E, J1> joinInfo1,
+                                                          JoinInfo<J1, J2> joinInfo2,
+                                                          SingularAttribute<J2, ?> attribute);
+
+    <E, J1, J2, J3> Specification<E> joinedAttributeIsNull(JoinInfo<? super E, J1> joinInfo1,
+                                                           JoinInfo<J1, J2> joinInfo2,
+                                                           JoinInfo<J2, J3> joinInfo3,
+                                                           SingularAttribute<J3, ?> attribute);
+
+    <E, J1, J2, J3> Specification<E> joinedAttributeIsNotNull(JoinInfo<? super E, J1> joinInfo1,
+                                                              JoinInfo<J1, J2> joinInfo2,
+                                                              JoinInfo<J2, J3> joinInfo3,
+                                                              SingularAttribute<J3, ?> attribute);
+
+
     <E> Specification<E> attributeIn(SingularAttribute<? super E, ?> attribute,
                                      @Nullable Collection<?> value);
 
