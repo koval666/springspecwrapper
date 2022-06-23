@@ -1,12 +1,6 @@
 package ru.teadev.springspecwrapper;
 
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.lang.Nullable;
-import org.springframework.stereotype.Component;
-import org.springframework.util.CollectionUtils;
-
 import java.util.Collection;
-import java.util.List;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
@@ -18,6 +12,10 @@ import javax.persistence.metamodel.SingularAttribute;
 
 import static org.springframework.data.jpa.domain.Specification.where;
 import static org.springframework.util.CollectionUtils.isEmpty;
+
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.Nullable;
+import org.springframework.util.CollectionUtils;
 
 public class BasicSpecificationsImpl implements BasicSpecifications {
 
@@ -32,7 +30,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     @Override
     public <E, J1> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
                                                       SingularAttribute<J1, ?> attribute,
-                                                      @Nullable List<?> value) {
+                                                      @Nullable Collection<?> value) {
         return nullIfParamIsNull(value,
 
                 new AbstractReusableJoinSpecification<>() {
@@ -49,7 +47,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     public <E, J1, J2> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
                                                           JoinInfo<J1, J2> joinInfo2,
                                                           SingularAttribute<J2, ?> attribute,
-                                                          @Nullable List<?> value) {
+                                                          @Nullable Collection<?> value) {
         return nullIfParamIsNull(value,
 
                 new AbstractReusableJoinSpecification<>() {
@@ -68,7 +66,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                                                               JoinInfo<J1, J2> joinInfo2,
                                                               JoinInfo<J2, J3> joinInfo3,
                                                               SingularAttribute<J3, ?> attribute,
-                                                              @Nullable List<?> value) {
+                                                              @Nullable Collection<?> value) {
         return nullIfParamIsNull(value,
 
                 new AbstractReusableJoinSpecification<>() {
@@ -85,7 +83,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
 
     @Override
     public <E> Specification<E> attributeIn(SingularAttribute<? super E, ?> attribute,
-                                            @Nullable List<?> value) {
+                                            @Nullable Collection<?> value) {
         return nullIfCollectionEmpty(value,
 
                 (root, query, criteriaBuilder) ->
@@ -206,7 +204,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
 
     @Override
     public <E, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(SingularAttribute<? super E, T> attribute,
-                                                                                        @Nullable List<Range<T>> ranges) {
+                                                                                        @Nullable Collection<Range<T>> ranges) {
         if (CollectionUtils.isEmpty(ranges)) {
             return null;
         }
