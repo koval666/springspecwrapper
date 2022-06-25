@@ -2,8 +2,8 @@ package ru.teadev.springspecwrapper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import javax.persistence.criteria.From;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.JoinType;
@@ -14,37 +14,67 @@ import static java.text.MessageFormat.format;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.lang.Nullable;
 
 @Slf4j
 abstract class AbstractReusableJoinSpecification<T> implements Specification<T> {
 
     protected final <F, J> Join<F, J> getOrCreateJoin(From<?, F> from, JoinInfo<? super F, J> joinInfoData) {
 
-        final JoinType type = joinInfoData.getType();
+        final JoinType joinType = joinInfoData.getType();
+        final Fetching joinFetching = joinInfoData.getFetching();
         final String joinAttributeName = joinInfoData.getAttributeName();
-        final String alias = generateAlias(from, joinAttributeName);
+        final String joinAlias = generateAlias(from, joinAttributeName);
 
         //noinspection unchecked
-        Optional<Join<F, J>> existedJoinOpt =
-                (Optional<Join<F, J>>) (Optional<? extends Join<?, ?>>)
-                        findJoin(from.getJoins(), alias);
+        Join<F, J> existedJoin = (Join<F, J>) findByAlias(from.getJoins(), joinAlias);
+        //noinspection unchecked,rawtypes
+        Join<F, J> existedFetch = (Join<F, J>) findByAlias((Set) from.getFetches(), joinAlias);
 
-        if (existedJoinOpt.isPresent()) {
-            Join<F, J> existedJoin = existedJoinOpt.get();
-            if (existedJoin.getJoinType() != type) {
-                throw new IllegalArgumentException(
-                        format("The previously added JOIN has a different type! Alias = {0}, Previously added type = {1}, New type = {2}",
-                                alias, existedJoin.getJoinType(), type));
+
+        Join<F, J> target;
+        Join<F, J> opposite;
+        BiFunction<String, JoinType, Join<F, J>> doJoin;
+
+        switch (joinFetching) {
+            case JOIN: {
+                target = existedJoin;
+                opposite = existedFetch;
+                //noinspection Convert2MethodRef
+                doJoin = (attrName, type) -> from.join(attrName, type);
+                break;
             }
-            log.debug("Reused join with alias = " + alias);
-            return existedJoin;
-
-        } else {
-            Join<Object, Object> join = from.join(joinAttributeName, type);
-            join.alias(alias);
-            //noinspection unchecked
-            return (Join<F, J>) join;
+            case FETCH: {
+                target = existedFetch;
+                opposite = existedJoin;
+                //noinspection unchecked
+                doJoin = (attrName, type) -> (Join<F, J>) from.fetch(attrName, type);
+                break;
+            }
+            default:
+                throw new IllegalStateException("Unexpected value: " + joinFetching);
         }
+
+
+        if (opposite != null) {
+            throw new IllegalArgumentException(
+                    format("Forbidden to use JOIN and JOIN-FETCH at the same time! Alias = {0}", joinAlias));
+        }
+
+        if (target != null) {
+            if (target.getJoinType() != joinType) {
+                throw new IllegalArgumentException(
+                        format("Previously added JOIN (or JOIN-FETCH) has a different type! Alias = {0}, Previously added type = {1}, New type = {2}",
+                                joinAlias, target.getJoinType(), joinType));
+            }
+
+            log.debug("Reused JOIN (or JOIN-FETCH) with alias = " + joinAlias);
+            return target;
+        }
+
+        Join<F, J> join = doJoin.apply(joinAttributeName, joinType);
+        join.alias(joinAlias);
+        return join;
     }
 
     private <F extends From<?, E>, E extends FA, FA> String generateAlias(F from, String joinAttributeName) {
@@ -62,17 +92,18 @@ abstract class AbstractReusableJoinSpecification<T> implements Specification<T> 
         }
     }
 
-    private Optional<Join<?, ?>> findJoin(@NonNull Set<? extends Join<?, ?>> joins, @NonNull String alias) {
+    @Nullable
+    private Join<?, ?> findByAlias(@NonNull Set<? extends Join<?, ?>> joins, @NonNull String alias) {
 
         List<Join<?, ?>> joinList = new ArrayList<>(joins);
 
         for (Join<?, ?> join : joinList) {
             if (alias.equals(join.getAlias())) {
-                return Optional.of(join);
+                return join;
             }
         }
 
-        return Optional.empty();
+        return null;
     }
 
     /**

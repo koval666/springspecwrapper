@@ -13,6 +13,15 @@ public interface BasicSpecifications {
 
     <E> Specification<E> distinct(Class<E> rootClass);
 
+    <E, J1> Specification<E> join(JoinInfo<? super E, J1> joinInfo1);
+
+    <E, J1, J2> Specification<E> join(JoinInfo<? super E, J1> joinInfo1,
+                                      JoinInfo<J1, J2> joinInfo2);
+
+    <E, J1, J2, J3> Specification<E> join(JoinInfo<? super E, J1> joinInfo1,
+                                          JoinInfo<J1, J2> joinInfo2,
+                                          JoinInfo<J2, J3> joinInfo3);
+
     <E> Specification<E> attributeIsNull(SingularAttribute<? super E, ?> attribute);
 
     <E> Specification<E> attributeIsNotNull(SingularAttribute<? super E, ?> attribute);
