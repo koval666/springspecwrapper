@@ -1,36 +1,46 @@
 package ru.teadev.springspecwrapper;
 
-import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.jpa.domain.Specification;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.persistence.criteria.From;
 import javax.persistence.criteria.Join;
+import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.Root;
+
+import static java.text.MessageFormat.format;
+
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 
 @Slf4j
 abstract class AbstractReusableJoinSpecification<T> implements Specification<T> {
 
     protected final <F, J> Join<F, J> getOrCreateJoin(From<?, F> from, JoinInfo<? super F, J> joinInfoData) {
 
+        final JoinType type = joinInfoData.getType();
         final String joinAttributeName = joinInfoData.getAttributeName();
         final String alias = generateAlias(from, joinAttributeName);
 
         //noinspection unchecked
-        Optional<Join<F, J>> existedJoin =
+        Optional<Join<F, J>> existedJoinOpt =
                 (Optional<Join<F, J>>) (Optional<? extends Join<?, ?>>)
                         findJoin(from.getJoins(), alias);
 
-        if (existedJoin.isPresent()) {
+        if (existedJoinOpt.isPresent()) {
+            Join<F, J> existedJoin = existedJoinOpt.get();
+            if (existedJoin.getJoinType() != type) {
+                throw new IllegalArgumentException(
+                        format("The previously added JOIN has a different type! Alias = {0}, Previously added type = {1}, New type = {2}",
+                                alias, existedJoin.getJoinType(), type));
+            }
             log.debug("Reused join with alias = " + alias);
-            return existedJoin.get();
+            return existedJoin;
 
         } else {
-            Join<Object, Object> join = from.join(joinAttributeName);
+            Join<Object, Object> join = from.join(joinAttributeName, type);
             join.alias(alias);
             //noinspection unchecked
             return (Join<F, J>) join;
