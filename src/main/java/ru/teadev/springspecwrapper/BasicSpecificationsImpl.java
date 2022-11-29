@@ -253,6 +253,18 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     public <E> Specification<E> orderBy(@NonNull ExpressionSupplier<E> supplier,
                                         @Nullable Direction direction,
                                         @NonNull Nulls nulls) {
+        return orderBy(
+                JoinInfoContainer.empty(),
+                supplier,
+                direction,
+                nulls);
+    }
+
+    @Override
+    public <E, G> Specification<E> orderBy(@NonNull JoinInfoContainer<E, G> joinInfoContainer,
+                                           @NonNull ExpressionSupplier<G> supplier,
+                                           @Nullable Direction direction,
+                                           @NonNull Nulls nulls) {
         if (direction == null) {
             return null;
         }
@@ -260,12 +272,12 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
         switch (direction) {
             case ASC:
                 return orderByAsc(
-                        JoinInfoContainer.empty(),
+                        joinInfoContainer,
                         supplier,
                         nulls);
             case DESC:
                 return orderByDesc(
-                        JoinInfoContainer.empty(),
+                        joinInfoContainer,
                         supplier,
                         nulls);
             default:

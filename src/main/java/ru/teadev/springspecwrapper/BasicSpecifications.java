@@ -81,6 +81,11 @@ public interface BasicSpecifications {
                                  @Nullable Direction direction,
                                  @NonNull Nulls nulls);
 
+    <E, G> Specification<E> orderBy(@NonNull JoinInfoContainer<E, G> joinInfoContainer,
+                                    @NonNull ExpressionSupplier<G> supplier,
+                                    @Nullable Direction direction,
+                                    @NonNull Nulls nulls);
+
     <E, I extends Comparable<? super I>, T> Specification<E> uniqueByAttribute(@NonNull Class<E> entityClass,
                                                                                @NonNull SingularAttribute<? super E, I> rootId,
                                                                                @NonNull IdAggregation rootIdAggregation,
