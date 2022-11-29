@@ -13,14 +13,31 @@ public interface BasicSpecifications {
 
     <E> Specification<E> distinct(Class<E> rootClass);
 
-    <E, J1> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo,
+    <E> Specification<E> attributeIn(SingularAttribute<? super E, ?> attribute,
+                                     @Nullable Collection<?> value);
+
+    <E> Specification<E> attributeNotIn(SingularAttribute<? super E, ?> attribute,
+                                        @Nullable Collection<?> value);
+
+    <E, J1> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
                                                SingularAttribute<J1, ?> attribute,
                                                @Nullable Collection<?> value);
+
+
+    <E, J1> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
+                                                  SingularAttribute<J1, ?> attribute,
+                                                  @Nullable Collection<?> value);
 
     <E, J1, J2> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
                                                    JoinInfo<J1, J2> joinInfo2,
                                                    SingularAttribute<J2, ?> attribute,
                                                    @Nullable Collection<?> value);
+
+
+    <E, J1, J2> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
+                                                      JoinInfo<J1, J2> joinInfo2,
+                                                      SingularAttribute<J2, ?> attribute,
+                                                      @Nullable Collection<?> value);
 
     <E, J1, J2, J3> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
                                                        JoinInfo<J1, J2> joinInfo2,
@@ -28,8 +45,11 @@ public interface BasicSpecifications {
                                                        SingularAttribute<J3, ?> attribute,
                                                        @Nullable Collection<?> value);
 
-    <E> Specification<E> attributeIn(SingularAttribute<? super E, ?> attribute,
-                                     @Nullable Collection<?> value);
+    <E, J1, J2, J3> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
+                                                          JoinInfo<J1, J2> joinInfo2,
+                                                          JoinInfo<J2, J3> joinInfo3,
+                                                          SingularAttribute<J3, ?> attribute,
+                                                          @Nullable Collection<?> value);
 
     <E, T> Specification<E> attributeEquals(SingularAttribute<? super E, T> attribute,
                                             @Nullable T value);
