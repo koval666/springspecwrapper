@@ -3,8 +3,11 @@ package ru.teadev.springspecwrapper;
 import java.util.Collection;
 import javax.persistence.metamodel.SingularAttribute;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NonNull;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.lang.Nullable;
 
@@ -12,6 +15,18 @@ public interface BasicSpecifications {
 
 
     <E> Specification<E> distinct(Class<E> rootClass);
+
+    <E> Specification<E> select(ExpressionSupplier<E> supplier);
+
+    <E, J1> Specification<E> select(@NonNull JoinInfo<? super E, J1> joinInfo1,
+                                    @NonNull SingularAttribute<J1, ?> attribute);
+
+    <E, J1> Specification<E> select(@NonNull JoinInfo<? super E, J1> joinInfo1,
+                                    @NonNull ExpressionSupplier<J1> supplier);
+
+    <E, J1, J2> Specification<E> select(@NonNull JoinInfo<? super E, J1> joinInfo1,
+                                        @NonNull JoinInfo<J1, J2> joinInfo2,
+                                        @NonNull ExpressionSupplier<J2> supplier);
 
     <E, J1> Specification<E> join(JoinInfo<? super E, J1> joinInfo1);
 
@@ -130,8 +145,13 @@ public interface BasicSpecifications {
     <E, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(SingularAttribute<? super E, T> attribute,
                                                                                  @Nullable Collection<Range<T>> ranges);
 
-    <E, T> Specification<E> orderBy(SingularAttribute<? super E, T> attribute,
-                                    @Nullable Direction direction);
+    <E, T> Specification<E> orderBy(@NonNull ExpressionSupplier<E> supplier,
+                                    @Nullable Direction direction,
+                                    @NonNull Nulls nulls);
+
+    <E, T> Specification<E> orderBy(@NonNull SingularAttribute<? super E, T> attribute,
+                                    @Nullable Direction direction,
+                                    @NonNull Nulls nulls);
 
     <E, I extends Comparable<? super I>, T> Specification<E> uniqueByAttribute(Class<E> entityClass,
                                                                                SingularAttribute<? super E, I> rootId,
@@ -149,6 +169,14 @@ public interface BasicSpecifications {
 
     enum Direction {
         ASC, DESC
+    }
+
+    @AllArgsConstructor
+    @Getter
+    enum Nulls {
+        FIRST(true),
+        LAST(false);
+        private final boolean isFirst;
     }
 
     enum IdAggregation {
