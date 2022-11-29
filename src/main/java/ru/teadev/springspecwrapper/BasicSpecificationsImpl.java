@@ -4,6 +4,7 @@ import java.util.Collection;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.From;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
@@ -23,10 +24,8 @@ import org.springframework.util.CollectionUtils;
 public class BasicSpecificationsImpl implements BasicSpecifications {
 
 
-    //todo проставить там где требуется @NonNull
-    //todo! пофиксить дженерики
     @Override
-    public <R> Specification<R> distinct(Class<R> rootClass) {
+    public <R> Specification<R> distinct(@NonNull Class<R> rootClass) {
         return (root, query, criteriaBuilder) -> {
             query.distinct(true);
             return null;
@@ -34,352 +33,163 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
-    public <E> Specification<E> select(ExpressionSupplier<E> supplier) {
-        return (root, query, criteriaBuilder) -> {
-            query.select(supplier.get(root, query, criteriaBuilder));
-            return null;
-        };
+    public <E> Specification<E> select(@NonNull ExpressionSupplier<E> supplier) {
+        return select(
+                JoinInfoContainer.empty(),
+                supplier);
     }
 
     @Override
-    public <E, J1> Specification<E> select(@NonNull JoinInfo<? super E, J1> joinInfo1,
-                                           @NonNull SingularAttribute<J1, ?> attribute) {
+    public <E, G> Specification<E> select(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                          @NonNull SingularAttribute<G, ?> attribute) {
+        return select(
+                joinInfoContainer,
+                (from, query, criteriaBuilder) -> from.get(attribute));
+    }
+
+    @Override
+    public <E, G> Specification<E> select(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                          @NonNull ExpressionSupplier<G> supplier) {
         return joinedAttributeSpec(
-                joinInfo1,
-                (join, query, criteriaBuilder) -> {
-                    query.select(join.get(attribute.getName()));
+                joinInfoContainer,
+                (from, query, criteriaBuilder) -> {
+                    //noinspection unchecked
+                    query.select(supplier.get(from, query, criteriaBuilder));
                     return null;
                 });
     }
 
     @Override
-    public <E, J1> Specification<E> select(@NonNull JoinInfo<? super E, J1> joinInfo1,
-                                           @NonNull ExpressionSupplier<J1> supplier) {
+    public <E, G> Specification<E> join(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer) {
         return joinedAttributeSpec(
-                joinInfo1,
-                (join, query, criteriaBuilder) -> {
-                    query.select(supplier.get(join, query, criteriaBuilder));
-                    return null;
-                });
+                joinInfoContainer,
+                (from, query, criteriaBuilder) -> null);
     }
 
     @Override
-    public <E, J1, J2> Specification<E> select(@NonNull JoinInfo<? super E, J1> joinInfo1,
-                                               @NonNull JoinInfo<J1, J2> joinInfo2,
-                                               @NonNull ExpressionSupplier<J2> supplier) {
-        return joinedAttributeSpec(
-                joinInfo1,
-                joinInfo2,
-                (join, query, criteriaBuilder) -> {
-                    query.select(supplier.get(join, query, criteriaBuilder));
-                    return null;
-                });
+    public <E> Specification<E> attributeIsNull(@NonNull SingularAttribute<? super E, ?> attribute) {
+        return attributeIsNull(
+                JoinInfoContainer.empty(),
+                attribute);
     }
 
     @Override
-    public <E, J1> Specification<E> join(JoinInfo<? super E, J1> joinInfo1) {
-        return joinedAttributeSpec(
-                joinInfo1,
-                (join, query, criteriaBuilder) -> null);
-    }
-
-    @Override
-    public <E, J1, J2> Specification<E> join(JoinInfo<? super E, J1> joinInfo1,
-                                             JoinInfo<J1, J2> joinInfo2) {
-        return joinedAttributeSpec(
-                joinInfo1,
-                joinInfo2,
-                (join, query, criteriaBuilder) -> null);
-    }
-
-    @Override
-    public <E, J1, J2, J3> Specification<E> join(JoinInfo<? super E, J1> joinInfo1,
-                                                 JoinInfo<J1, J2> joinInfo2,
-                                                 JoinInfo<J2, J3> joinInfo3) {
-        return joinedAttributeSpec(
-                joinInfo1,
-                joinInfo2,
-                joinInfo3,
-                (join, query, criteriaBuilder) -> null);
-    }
-
-    @Override
-    public <E> Specification<E> attributeIsNull(SingularAttribute<? super E, ?> attribute) {
-        return (root, query, criteriaBuilder) ->
-                root.get(attribute).isNull();
-    }
-
-    @Override
-    public <E> Specification<E> attributeIsNotNull(SingularAttribute<? super E, ?> attribute) {
+    public <E> Specification<E> attributeIsNotNull(@NonNull SingularAttribute<? super E, ?> attribute) {
         return not(attributeIsNull(attribute));
     }
 
     @Override
-    public <E, J1> Specification<E> joinedAttributeIsNull(JoinInfo<? super E, J1> joinInfo1,
-                                                          SingularAttribute<J1, ?> attribute) {
+    public <E, G> Specification<E> attributeIsNull(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                   @NonNull SingularAttribute<G, ?> attribute) {
         return joinedAttributeSpec(
-                joinInfo1,
-                (join, query, criteriaBuilder) -> join.get(attribute).isNull());
+                joinInfoContainer,
+                (from, query, criteriaBuilder) -> from.get(attribute).isNull());
     }
 
     @Override
-    public <E, J1> Specification<E> joinedAttributeIsNotNull(JoinInfo<? super E, J1> joinInfo1,
-                                                             SingularAttribute<J1, ?> attribute) {
-        return not(joinedAttributeIsNull(joinInfo1, attribute));
+    public <E, G> Specification<E> attributeIsNotNull(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                      @NonNull SingularAttribute<G, ?> attribute) {
+        return not(attributeIsNull(joinInfoContainer, attribute));
     }
 
-    @Override
-    public <E, J1, J2> Specification<E> joinedAttributeIsNull(JoinInfo<? super E, J1> joinInfo1,
-                                                              JoinInfo<J1, J2> joinInfo2,
-                                                              SingularAttribute<J2, ?> attribute) {
-        return joinedAttributeSpec(
-                joinInfo1,
-                joinInfo2,
-                (join, query, criteriaBuilder) -> join.get(attribute).isNull());
-    }
 
     @Override
-    public <E, J1, J2> Specification<E> joinedAttributeIsNotNull(JoinInfo<? super E, J1> joinInfo1,
-                                                                 JoinInfo<J1, J2> joinInfo2,
-                                                                 SingularAttribute<J2, ?> attribute) {
-        return not(joinedAttributeIsNull(
-                joinInfo1,
-                joinInfo2,
-                attribute));
-    }
-
-    @Override
-    public <E, J1, J2, J3> Specification<E> joinedAttributeIsNull(JoinInfo<? super E, J1> joinInfo1,
-                                                                  JoinInfo<J1, J2> joinInfo2,
-                                                                  JoinInfo<J2, J3> joinInfo3,
-                                                                  SingularAttribute<J3, ?> attribute) {
-        return joinedAttributeSpec(
-                joinInfo1,
-                joinInfo2,
-                joinInfo3,
-                (join, query, criteriaBuilder) -> join.get(attribute).isNull());
-    }
-
-    @Override
-    public <E, J1, J2, J3> Specification<E> joinedAttributeIsNotNull(JoinInfo<? super E, J1> joinInfo1,
-                                                                     JoinInfo<J1, J2> joinInfo2,
-                                                                     JoinInfo<J2, J3> joinInfo3,
-                                                                     SingularAttribute<J3, ?> attribute) {
-        return not(joinedAttributeIsNull(
-                joinInfo1,
-                joinInfo2,
-                joinInfo3,
-                attribute));
-    }
-
-    @Override
-    public <E> Specification<E> attributeIn(SingularAttribute<? super E, ?> attribute,
+    public <E> Specification<E> attributeIn(@NonNull SingularAttribute<? super E, ?> attribute,
                                             @Nullable Collection<?> value) {
-        return nullIfCollectionEmpty(value,
-
-                (root, query, criteriaBuilder) ->
-                        root.get(attribute).in(value));
+        return attributeIn(
+                JoinInfoContainer.empty(),
+                attribute,
+                value);
     }
 
     @Override
-    public <E> Specification<E> attributeNotIn(SingularAttribute<? super E, ?> attribute,
-                                               Collection<?> value) {
+    public <E> Specification<E> attributeNotIn(@NonNull SingularAttribute<? super E, ?> attribute,
+                                               @NonNull Collection<?> value) {
         return not(attributeIn(attribute, value));
     }
 
     @Override
-    public <E, J1> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
-                                                      SingularAttribute<J1, ?> attribute,
-                                                      @Nullable Collection<?> value) {
+    public <E, G> Specification<E> attributeIn(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                               @NonNull SingularAttribute<G, ?> attribute,
+                                               @Nullable Collection<?> value) {
         return nullIfCollectionEmpty(value,
 
                 joinedAttributeSpec(
-                        joinInfo1,
-                        (join, query, criteriaBuilder) -> join.get(attribute).in(value)));
+                        joinInfoContainer,
+                        (from, query, criteriaBuilder) -> from.get(attribute).in(value)));
     }
 
-    private <E, J1> Specification<E> joinedAttributeSpec(@NonNull JoinInfo<? super E, J1> joinInfo1,
-                                                         @NonNull JoinSpecification<E, J1> joinSpecification) {
-        return new AbstractReusableJoinSpecification<>() {
-            @Override
-            public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
+    @Override
+    public <E, G> Specification<E> attributeNotIn(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                  @NonNull SingularAttribute<G, ?> attribute,
+                                                  @Nullable Collection<?> value) {
 
-                Join<E, J1> join = getOrCreateJoin(root, joinInfo1);
-                return joinSpecification.toPredicate(join, query, criteriaBuilder);
-            }
-        };
+        return not(attributeIn(joinInfoContainer, attribute, value));
     }
 
-    private <E, J1, J2> Specification<E> joinedAttributeSpec(@NonNull JoinInfo<? super E, J1> joinInfo1,
-                                                             @NonNull JoinInfo<J1, J2> joinInfo2,
-                                                             @NonNull JoinSpecification<J1, J2> joinSpecification) {
+    private <E, G> Specification<E> joinedAttributeSpec(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                        @NonNull JoinSpecification<?, G> joinSpecification) {
         return new AbstractReusableJoinSpecification<>() {
             @Override
-            public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
+            public Predicate toPredicate(@NonNull Root<E> root,
+                                         @NonNull CriteriaQuery<?> query,
+                                         @NonNull CriteriaBuilder criteriaBuilder) {
+                //noinspection rawtypes
+                From currentFrom = root;
 
-                Join<E, J1> join1 = getOrCreateJoin(root, joinInfo1);
-                Join<J1, J2> join2 = getOrCreateJoin(join1, joinInfo2);
-                return joinSpecification.toPredicate(join2, query, criteriaBuilder);
-            }
-        };
-    }
+                //noinspection rawtypes
+                for (JoinInfo joinInfo : joinInfoContainer.getJoinInfos()) {
+                    //noinspection rawtypes,UnnecessaryLocalVariable,unchecked
+                    Join join = getOrCreateJoin(currentFrom, joinInfo);
+                    currentFrom = join;
+                }
 
-    private <E, J1, J2, J3> Specification<E> joinedAttributeSpec(@NonNull JoinInfo<? super E, J1> joinInfo1,
-                                                                 @NonNull JoinInfo<J1, J2> joinInfo2,
-                                                                 @NonNull JoinInfo<J2, J3> joinInfo3,
-                                                                 @NonNull JoinSpecification<J2, J3> joinSpecification) {
-        return new AbstractReusableJoinSpecification<>() {
-            @Override
-            public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
-
-                Join<E, J1> join1 = getOrCreateJoin(root, joinInfo1);
-                Join<J1, J2> join2 = getOrCreateJoin(join1, joinInfo2);
-                Join<J2, J3> join3 = getOrCreateJoin(join2, joinInfo3);
-                return joinSpecification.toPredicate(join3, query, criteriaBuilder);
+                //noinspection unchecked
+                return joinSpecification.toPredicate(currentFrom, query, criteriaBuilder);
             }
         };
     }
 
     @Override
-    public <E, J1> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
-                                                         SingularAttribute<J1, ?> attribute,
-                                                         Collection<?> value) {
-        return not(joinedAttributeIn(joinInfo1, attribute, value));
-    }
-
-    @Override
-    public <E, J1, J2> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
-                                                          JoinInfo<J1, J2> joinInfo2,
-                                                          SingularAttribute<J2, ?> attribute,
-                                                          @Nullable Collection<?> value) {
-        return nullIfCollectionEmpty(value,
-
-                joinedAttributeSpec(
-                        joinInfo1,
-                        joinInfo2,
-                        (join, query, criteriaBuilder) -> join.get(attribute).in(value)));
-    }
-
-    //todo перейти на joinedAttributeSpec в других методах с джоинами
-
-    @Override
-    public <E, J1, J2> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
-                                                             JoinInfo<J1, J2> joinInfo2,
-                                                             SingularAttribute<J2, ?> attribute,
-                                                             Collection<?> value) {
-        return not(joinedAttributeIn(joinInfo1, joinInfo2, attribute, value));
-    }
-
-    @Override
-    public <E, J1, J2, J3> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
-                                                              JoinInfo<J1, J2> joinInfo2,
-                                                              JoinInfo<J2, J3> joinInfo3,
-                                                              SingularAttribute<J3, ?> attribute,
-                                                              @Nullable Collection<?> value) {
-        return nullIfCollectionEmpty(value,
-
-                joinedAttributeSpec(
-                        joinInfo1,
-                        joinInfo2,
-                        joinInfo3,
-                        (join, query, criteriaBuilder) -> join.get(attribute).in(value)));
-    }
-
-    @Override
-    public <E, J1, J2, J3> Specification<E> joinedAttributeNotIn(JoinInfo<? super E, J1> joinInfo1,
-                                                                 JoinInfo<J1, J2> joinInfo2,
-                                                                 JoinInfo<J2, J3> joinInfo3,
-                                                                 SingularAttribute<J3, ?> attribute,
-                                                                 Collection<?> value) {
-        return not(joinedAttributeIn(joinInfo1, joinInfo2, joinInfo3, attribute, value));
-    }
-
-    @Override
-    public <E, T> Specification<E> attributeEquals(SingularAttribute<? super E, T> attribute,
+    public <E, T> Specification<E> attributeEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                    @Nullable T value) {
-        return nullIfParamIsNull(value,
-
-                (root, query, criteriaBuilder) ->
-                        criteriaBuilder.equal(root.get(attribute), value));
+        return attributeEquals(
+                JoinInfoContainer.empty(),
+                attribute,
+                value);
     }
 
     @Override
-    public <E, J1, T> Specification<E> joinedAttributeEquals(JoinInfo<? super E, J1> joinInfo1,
-                                                             SingularAttribute<J1, T> attribute,
-                                                             @Nullable T value) {
+    public <E, G, T> Specification<E> attributeEquals(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                      @NonNull SingularAttribute<G, T> attribute,
+                                                      @Nullable T value) {
         return nullIfParamIsNull(value,
 
-                new AbstractReusableJoinSpecification<>() {
-                    @Override
-                    public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
-
-                        Join<E, J1> join = getOrCreateJoin(root, joinInfo1);
-                        return criteriaBuilder.equal(join.get(attribute), value);
-                    }
-                });
+                joinedAttributeSpec(
+                        joinInfoContainer,
+                        (from, query, criteriaBuilder) ->
+                                criteriaBuilder.equal(from.get(attribute), value)));
     }
 
     @Override
-    public <E> Specification<E> attributeLikeIgnoreCase(SingularAttribute<? super E, String> attribute,
+    public <E> Specification<E> attributeLikeIgnoreCase(@NonNull SingularAttribute<? super E, String> attribute,
                                                         @Nullable String value) {
-        return nullIfParamIsNull(value,
-
-                (root, query, criteriaBuilder) ->
-                        likeIgnoreCase(criteriaBuilder, root.get(attribute), value));
+        return attributeLikeIgnoreCase(
+                JoinInfoContainer.empty(),
+                attribute,
+                value);
     }
 
     @Override
-    public <E, J1> Specification<E> joinedAttributeLikeIgnoreCase(JoinInfo<? super E, J1> joinInfo1,
-                                                                  SingularAttribute<J1, String> attribute,
-                                                                  @Nullable String value) {
+    public <E, G> Specification<E> attributeLikeIgnoreCase(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                           @NonNull SingularAttribute<G, String> attribute,
+                                                           @Nullable String value) {
         return nullIfParamIsNull(value,
 
-                new AbstractReusableJoinSpecification<>() {
-                    @Override
-                    public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
-
-                        Join<E, J1> join = getOrCreateJoin(root, joinInfo1);
-                        return likeIgnoreCase(criteriaBuilder, join.get(attribute), value);
-                    }
-                });
-    }
-
-    @Override
-    public <E, J1, J2> Specification<E> joinedAttributeLikeIgnoreCase(JoinInfo<? super E, J1> joinInfo1,
-                                                                      JoinInfo<J1, J2> joinInfo2,
-                                                                      SingularAttribute<J2, String> attribute,
-                                                                      @Nullable String value) {
-        return nullIfParamIsNull(value,
-
-                new AbstractReusableJoinSpecification<>() {
-                    @Override
-                    public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
-
-                        Join<E, J1> join1 = getOrCreateJoin(root, joinInfo1);
-                        Join<J1, J2> join2 = getOrCreateJoin(join1, joinInfo2);
-                        return likeIgnoreCase(criteriaBuilder, join2.get(attribute), value);
-                    }
-                });
-    }
-
-    @Override
-    public <E, J1, J2, J3> Specification<E> joinedAttributeLikeIgnoreCase(JoinInfo<? super E, J1> joinInfo1,
-                                                                          JoinInfo<J1, J2> joinInfo2,
-                                                                          JoinInfo<J2, J3> joinInfo3,
-                                                                          SingularAttribute<J3, String> attribute,
-                                                                          @Nullable String value) {
-        return nullIfParamIsNull(value,
-
-                new AbstractReusableJoinSpecification<>() {
-                    @Override
-                    public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
-
-                        Join<E, J1> join1 = getOrCreateJoin(root, joinInfo1);
-                        Join<J1, J2> join2 = getOrCreateJoin(join1, joinInfo2);
-                        Join<J2, J3> join3 = getOrCreateJoin(join2, joinInfo3);
-                        return likeIgnoreCase(criteriaBuilder, join3.get(attribute), value);
-                    }
-                });
+                joinedAttributeSpec(
+                        joinInfoContainer,
+                        (from, query, criteriaBuilder) ->
+                                likeIgnoreCase(criteriaBuilder, from.get(attribute), value)));
     }
 
     private Predicate likeIgnoreCase(CriteriaBuilder builder, Expression<String> expression, String value) {
@@ -387,7 +197,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
-    public <E, T extends Comparable<? super T>> Specification<E> attributeGreaterOrEquals(SingularAttribute<? super E, T> attribute,
+    public <E, T extends Comparable<? super T>> Specification<E> attributeGreaterOrEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                           @Nullable T value) {
 
         return nullIfParamIsNull(value,
@@ -397,7 +207,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
-    public <E, T extends Comparable<? super T>> Specification<E> attributeLessOrEquals(SingularAttribute<? super E, T> attribute,
+    public <E, T extends Comparable<? super T>> Specification<E> attributeLessOrEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                        @Nullable T value) {
 
         return nullIfParamIsNull(value,
@@ -407,7 +217,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
-    public <E, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(SingularAttribute<? super E, T> attribute,
+    public <E, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                         @Nullable Collection<Range<T>> ranges) {
         if (CollectionUtils.isEmpty(ranges)) {
             return null;
@@ -429,46 +239,45 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
-    public <E, T> Specification<E> orderBy(@NonNull ExpressionSupplier<E> supplier,
-                                           @Nullable Direction direction,
-                                           @NonNull Nulls nulls) {
-        if (direction == null) {
-            return null;
-        }
-
-        switch (direction) {
-            case ASC:
-                return orderByAsc(supplier, nulls);
-            case DESC:
-                return orderByDesc(supplier, nulls);
-            default:
-                throw new IllegalStateException("Unexpected value: " + direction);
-        }
-    }
-
-    @Override
     public <E, T> Specification<E> orderBy(@NonNull SingularAttribute<? super E, T> attribute,
                                            @Nullable Direction direction,
                                            @NonNull Nulls nulls) {
+
+        return orderBy(
+                (from, query, criteriaBuilder) -> from.get(attribute),
+                direction,
+                nulls);
+    }
+
+    @Override
+    public <E> Specification<E> orderBy(@NonNull ExpressionSupplier<E> supplier,
+                                        @Nullable Direction direction,
+                                        @NonNull Nulls nulls) {
         if (direction == null) {
             return null;
         }
 
         switch (direction) {
             case ASC:
-                return orderByAsc(attribute, nulls);
+                return orderByAsc(
+                        JoinInfoContainer.empty(),
+                        supplier,
+                        nulls);
             case DESC:
-                return orderByDesc(attribute, nulls);
+                return orderByDesc(
+                        JoinInfoContainer.empty(),
+                        supplier,
+                        nulls);
             default:
                 throw new IllegalStateException("Unexpected value: " + direction);
         }
     }
 
     @Override
-    public <E, I extends Comparable<? super I>, T> Specification<E> uniqueByAttribute(Class<E> entityClass,
-                                                                                      SingularAttribute<? super E, I> rootId,
-                                                                                      IdAggregation rootIdAggregation,
-                                                                                      SingularAttribute<? super E, T> attribute) {
+    public <E, I extends Comparable<? super I>, T> Specification<E> uniqueByAttribute(@NonNull Class<E> entityClass,
+                                                                                      @NonNull SingularAttribute<? super E, I> rootId,
+                                                                                      @NonNull IdAggregation rootIdAggregation,
+                                                                                      @NonNull SingularAttribute<? super E, T> attribute) {
         return (root, query, criteriaBuilder) -> {
 
             Subquery<I> subQuery = query.subquery(rootId.getJavaType());
@@ -491,42 +300,38 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
         };
     }
 
-    private <E, T> Specification<E> orderByAsc(SingularAttribute<? super E, T> attribute, @NonNull Nulls nulls) {
-        return (root, query, criteriaBuilder) -> {
-            HibernateCriteriaBuilder hCriteriaBuilder = (HibernateCriteriaBuilder) criteriaBuilder;
-            query.orderBy(hCriteriaBuilder.asc(root.get(attribute), nulls.isFirst()));
-            return null;
-        };
+    private <E, G> Specification<E> orderByAsc(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                               @NonNull ExpressionSupplier<G> supplier,
+                                               @NonNull Nulls nulls) {
+        return joinedAttributeSpec(
+                joinInfoContainer,
+
+                (from, query, criteriaBuilder) -> {
+                    HibernateCriteriaBuilder hCriteriaBuilder = (HibernateCriteriaBuilder) criteriaBuilder;
+                    query.orderBy(
+                            hCriteriaBuilder.asc(
+                                    supplier.get(from, query, criteriaBuilder),
+                                    nulls.isFirst()));
+                    return null;
+                }
+        );
     }
 
-    private <E, T> Specification<E> orderByDesc(SingularAttribute<? super E, T> attribute, @NonNull Nulls nulls) {
-        return (root, query, criteriaBuilder) -> {
-            HibernateCriteriaBuilder hCriteriaBuilder = (HibernateCriteriaBuilder) criteriaBuilder;
-            query.orderBy(hCriteriaBuilder.desc(root.get(attribute), nulls.isFirst()));
-            return null;
-        };
-    }
+    private <E, G> Specification<E> orderByDesc(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                @NonNull ExpressionSupplier<G> supplier,
+                                                @NonNull Nulls nulls) {
+        return joinedAttributeSpec(
+                joinInfoContainer,
 
-    private <E, T> Specification<E> orderByAsc(ExpressionSupplier<E> supplier, @NonNull Nulls nulls) {
-        return (root, query, criteriaBuilder) -> {
-            HibernateCriteriaBuilder hCriteriaBuilder = (HibernateCriteriaBuilder) criteriaBuilder;
-            query.orderBy(
-                    hCriteriaBuilder.asc(
-                            supplier.get(root, query, criteriaBuilder),
-                            nulls.isFirst()));
-            return null;
-        };
-    }
-
-    private <E, T> Specification<E> orderByDesc(ExpressionSupplier<E> supplier, @NonNull Nulls nulls) {
-        return (root, query, criteriaBuilder) -> {
-            HibernateCriteriaBuilder hCriteriaBuilder = (HibernateCriteriaBuilder) criteriaBuilder;
-            query.orderBy(
-                    hCriteriaBuilder.desc(
-                            supplier.get(root, query, criteriaBuilder),
-                            nulls.isFirst()));
-            return null;
-        };
+                (from, query, criteriaBuilder) -> {
+                    HibernateCriteriaBuilder hCriteriaBuilder = (HibernateCriteriaBuilder) criteriaBuilder;
+                    query.orderBy(
+                            hCriteriaBuilder.desc(
+                                    supplier.get(from, query, criteriaBuilder),
+                                    nulls.isFirst()));
+                    return null;
+                }
+        );
     }
 
     private <T, C> Specification<T> nullIfCollectionEmpty(Collection<C> collection, Specification<T> specification) {
