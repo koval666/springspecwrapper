@@ -31,6 +31,33 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     }
 
     @Override
+    public <E, J1> Specification<E> join(JoinInfo<? super E, J1> joinInfo1) {
+        return joinedAttributeSpec(
+                joinInfo1,
+                join -> null);
+    }
+
+    @Override
+    public <E, J1, J2> Specification<E> join(JoinInfo<? super E, J1> joinInfo1,
+                                             JoinInfo<J1, J2> joinInfo2) {
+        return joinedAttributeSpec(
+                joinInfo1,
+                joinInfo2,
+                join -> null);
+    }
+
+    @Override
+    public <E, J1, J2, J3> Specification<E> join(JoinInfo<? super E, J1> joinInfo1,
+                                                 JoinInfo<J1, J2> joinInfo2,
+                                                 JoinInfo<J2, J3> joinInfo3) {
+        return joinedAttributeSpec(
+                joinInfo1,
+                joinInfo2,
+                joinInfo3,
+                join -> null);
+    }
+
+    @Override
     public <E> Specification<E> attributeIsNull(SingularAttribute<? super E, ?> attribute) {
         return (root, query, criteriaBuilder) ->
                 root.get(attribute).isNull();
@@ -46,8 +73,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                                                           SingularAttribute<J1, ?> attribute) {
         return joinedAttributeSpec(
                 joinInfo1,
-                attribute,
-                Expression::isNull);
+                join -> join.get(attribute).isNull());
     }
 
     @Override
@@ -63,8 +89,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
         return joinedAttributeSpec(
                 joinInfo1,
                 joinInfo2,
-                attribute,
-                Expression::isNull);
+                join -> join.get(attribute).isNull());
     }
 
     @Override
@@ -86,8 +111,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                 joinInfo1,
                 joinInfo2,
                 joinInfo3,
-                attribute,
-                Expression::isNull);
+                join -> join.get(attribute).isNull());
     }
 
     @Override
@@ -121,21 +145,20 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     public <E, J1> Specification<E> joinedAttributeIn(JoinInfo<? super E, J1> joinInfo1,
                                                       SingularAttribute<J1, ?> attribute,
                                                       @Nullable Collection<?> value) {
-        return nullIfParamIsNull(value,
+        return nullIfCollectionEmpty(value,
 
-                joinedAttributeSpec(joinInfo1, attribute,
-                        expression -> expression.in(value)));
+                joinedAttributeSpec(joinInfo1,
+                        join -> join.get(attribute).in(value)));
     }
 
     private <E, J1> Specification<E> joinedAttributeSpec(@NonNull JoinInfo<? super E, J1> joinInfo1,
-                                                         @NonNull SingularAttribute<J1, ?> attribute,
-                                                         @NonNull Function<Expression<?>, Predicate> condition) {
+                                                         @NonNull Function<Join<E, J1>, Predicate> condition) {
         return new AbstractReusableJoinSpecification<>() {
             @Override
             public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
 
                 Join<E, J1> join = getOrCreateJoin(root, joinInfo1);
-                return condition.apply(join.get(attribute));
+                return condition.apply(join);
             }
         };
     }
@@ -152,23 +175,24 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                                                           JoinInfo<J1, J2> joinInfo2,
                                                           SingularAttribute<J2, ?> attribute,
                                                           @Nullable Collection<?> value) {
-        return nullIfParamIsNull(value,
+        return nullIfCollectionEmpty(value,
 
-                joinedAttributeSpec(joinInfo1, joinInfo2, attribute,
-                        expression -> expression.in(value)));
+                joinedAttributeSpec(joinInfo1, joinInfo2,
+                        join -> join.get(attribute).in(value)));
     }
+
+    //todo перейти на joinedAttributeSpec в других методах с джоинами
 
     private <E, J1, J2> Specification<E> joinedAttributeSpec(@NonNull JoinInfo<? super E, J1> joinInfo1,
                                                              @NonNull JoinInfo<J1, J2> joinInfo2,
-                                                             @NonNull SingularAttribute<J2, ?> attribute,
-                                                             @NonNull Function<Expression<?>, Predicate> condition) {
+                                                             @NonNull Function<Join<J1, J2>, Predicate> condition) {
         return new AbstractReusableJoinSpecification<>() {
             @Override
             public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
 
                 Join<E, J1> join1 = getOrCreateJoin(root, joinInfo1);
                 Join<J1, J2> join2 = getOrCreateJoin(join1, joinInfo2);
-                return condition.apply(join2.get(attribute));
+                return condition.apply(join2);
             }
         };
     }
@@ -187,17 +211,16 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                                                               JoinInfo<J2, J3> joinInfo3,
                                                               SingularAttribute<J3, ?> attribute,
                                                               @Nullable Collection<?> value) {
-        return nullIfParamIsNull(value,
+        return nullIfCollectionEmpty(value,
 
-                joinedAttributeSpec(joinInfo1, joinInfo2, joinInfo3, attribute,
-                        expression -> expression.in(value)));
+                joinedAttributeSpec(joinInfo1, joinInfo2, joinInfo3,
+                        join -> join.get(attribute).in(value)));
     }
 
     private <E, J1, J2, J3> Specification<E> joinedAttributeSpec(@NonNull JoinInfo<? super E, J1> joinInfo1,
                                                                  @NonNull JoinInfo<J1, J2> joinInfo2,
                                                                  @NonNull JoinInfo<J2, J3> joinInfo3,
-                                                                 @NonNull SingularAttribute<J3, ?> attribute,
-                                                                 @NonNull Function<Expression<?>, Predicate> condition) {
+                                                                 @NonNull Function<Join<J2, J3>, Predicate> condition) {
         return new AbstractReusableJoinSpecification<>() {
             @Override
             public Predicate toPredicate(Root<E> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
@@ -205,7 +228,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                 Join<E, J1> join1 = getOrCreateJoin(root, joinInfo1);
                 Join<J1, J2> join2 = getOrCreateJoin(join1, joinInfo2);
                 Join<J2, J3> join3 = getOrCreateJoin(join2, joinInfo3);
-                return condition.apply(join3.get(attribute));
+                return condition.apply(join3);
             }
         };
     }
