@@ -9,7 +9,7 @@
     </parent>
     <groupId>ru.teadev</groupId>
     <artifactId>springspecwrapper</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>1.2.0-SNAPSHOT</version>
     <name>springspecwrapper</name>
     <description>springspecwrapper</description>
     <packaging>jar</packaging>
