@@ -11,7 +11,7 @@
 
     <groupId>ru.teadev</groupId>
     <artifactId>springspecwrapper</artifactId>
-    <version>1.3.0</version>
+    <version>1.4.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
