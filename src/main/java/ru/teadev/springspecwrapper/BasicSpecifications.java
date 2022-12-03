@@ -3,16 +3,11 @@ package ru.teadev.springspecwrapper;
 import java.util.Collection;
 import javax.persistence.metamodel.SingularAttribute;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
 import lombok.NonNull;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.lang.Nullable;
 
 public interface BasicSpecifications {
-
 
     <R> Specification<R> distinct(@NonNull Class<R> rootClass);
 
@@ -28,10 +23,10 @@ public interface BasicSpecifications {
 
     <E> Specification<E> attributeIsNull(@NonNull SingularAttribute<? super E, ?> attribute);
 
-    <E> Specification<E> attributeIsNotNull(@NonNull SingularAttribute<? super E, ?> attribute);
-
     <E, G> Specification<E> attributeIsNull(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
                                             @NonNull SingularAttribute<G, ?> attribute);
+
+    <E> Specification<E> attributeIsNotNull(@NonNull SingularAttribute<? super E, ?> attribute);
 
     <E, G> Specification<E> attributeIsNotNull(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
                                                @NonNull SingularAttribute<G, ?> attribute);
@@ -39,12 +34,12 @@ public interface BasicSpecifications {
     <E> Specification<E> attributeIn(@NonNull SingularAttribute<? super E, ?> attribute,
                                      @Nullable Collection<?> value);
 
-    <E> Specification<E> attributeNotIn(@NonNull SingularAttribute<? super E, ?> attribute,
-                                        @NonNull Collection<?> value);
-
     <E, G> Specification<E> attributeIn(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
                                         @NonNull SingularAttribute<G, ?> attribute,
                                         @Nullable Collection<?> value);
+
+    <E> Specification<E> attributeNotIn(@NonNull SingularAttribute<? super E, ?> attribute,
+                                        @NonNull Collection<?> value);
 
     <E, G> Specification<E> attributeNotIn(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
                                            @NonNull SingularAttribute<G, ?> attribute,
@@ -67,15 +62,32 @@ public interface BasicSpecifications {
     <E, T extends Comparable<? super T>> Specification<E> attributeGreaterOrEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                    @Nullable T value);
 
+    <E, G, T extends Comparable<? super T>> Specification<E> attributeGreaterOrEquals(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                                                      @NonNull SingularAttribute<G, T> attribute,
+                                                                                      @Nullable T value);
+
     <E, T extends Comparable<? super T>> Specification<E> attributeLessOrEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                 @Nullable T value);
+
+    <E, G, T extends Comparable<? super T>> Specification<E> attributeLessOrEquals(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                                                   @NonNull SingularAttribute<G, T> attribute,
+                                                                                   @Nullable T value);
 
     <E, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                  @Nullable Collection<Range<T>> ranges);
 
+    <E, G, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                                                    @NonNull SingularAttribute<G, T> attribute,
+                                                                                    @Nullable Collection<Range<T>> ranges);
+
     <E, T> Specification<E> orderBy(@NonNull SingularAttribute<? super E, T> attribute,
                                     @Nullable Direction direction,
                                     @NonNull Nulls nulls);
+
+    <E, T, G> Specification<E> orderBy(@NonNull JoinInfoContainer<E, G> joinInfoContainer,
+                                       @NonNull SingularAttribute<G, T> attribute,
+                                       @Nullable Direction direction,
+                                       @NonNull Nulls nulls);
 
     <E> Specification<E> orderBy(@NonNull ExpressionSupplier<E> supplier,
                                  @Nullable Direction direction,
@@ -91,29 +103,4 @@ public interface BasicSpecifications {
                                                                                @NonNull IdAggregation rootIdAggregation,
                                                                                @NonNull SingularAttribute<? super E, T> attribute);
 
-
-    @Data
-    @Builder
-    class Range<T> {
-        @Nullable
-        T from;
-        @Nullable
-        T to;
-    }
-
-    enum Direction {
-        ASC, DESC
-    }
-
-    @AllArgsConstructor
-    @Getter
-    enum Nulls {
-        FIRST(true),
-        LAST(false);
-        private final boolean isFirst;
-    }
-
-    enum IdAggregation {
-        MIN, MAX
-    }
 }

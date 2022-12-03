@@ -6,5 +6,5 @@ import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.From;
 
 public interface ExpressionSupplier<F> {
-    Expression get(From<?, F> from, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder);
+    Expression<?> get(From<?, F> from, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder);
 }

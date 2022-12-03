@@ -22,7 +22,7 @@ abstract class AbstractReusableJoinSpecification<T> implements Specification<T> 
     protected final <F, J> Join<F, J> getOrCreateJoin(From<?, F> from, JoinInfo<? super F, J> joinInfoData) {
 
         final JoinType joinType = joinInfoData.getType();
-        final Fetching joinFetching = joinInfoData.getFetching();
+        final JoinInfo.Fetching joinFetching = joinInfoData.getFetching();
         final String joinAttributeName = joinInfoData.getAttributeName();
         final String joinAlias = generateAlias(from, joinAttributeName);
 

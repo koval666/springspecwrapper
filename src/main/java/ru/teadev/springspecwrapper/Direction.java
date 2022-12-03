@@ -1,5 +1,5 @@
 package ru.teadev.springspecwrapper;
 
-public enum Fetching {
-    JOIN, FETCH
+public enum Direction {
+    ASC, DESC
 }

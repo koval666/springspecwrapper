@@ -14,6 +14,7 @@ import javax.persistence.metamodel.SingularAttribute;
 import static org.springframework.data.jpa.domain.Specification.not;
 import static org.springframework.data.jpa.domain.Specification.where;
 import static org.springframework.util.CollectionUtils.isEmpty;
+import static ru.teadev.springspecwrapper.JoinInfoContainer.noJoins;
 
 import lombok.NonNull;
 import org.hibernate.query.criteria.HibernateCriteriaBuilder;
@@ -35,7 +36,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     @Override
     public <E> Specification<E> select(@NonNull ExpressionSupplier<E> supplier) {
         return select(
-                JoinInfoContainer.empty(),
+                noJoins(),
                 supplier);
     }
 
@@ -53,8 +54,8 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
         return joinedAttributeSpec(
                 joinInfoContainer,
                 (from, query, criteriaBuilder) -> {
-                    //noinspection unchecked
-                    query.select(supplier.get(from, query, criteriaBuilder));
+                    //noinspection rawtypes,unchecked
+                    query.select((Expression) supplier.get(from, query, criteriaBuilder));
                     return null;
                 });
     }
@@ -69,13 +70,8 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     @Override
     public <E> Specification<E> attributeIsNull(@NonNull SingularAttribute<? super E, ?> attribute) {
         return attributeIsNull(
-                JoinInfoContainer.empty(),
+                noJoins(),
                 attribute);
-    }
-
-    @Override
-    public <E> Specification<E> attributeIsNotNull(@NonNull SingularAttribute<? super E, ?> attribute) {
-        return not(attributeIsNull(attribute));
     }
 
     @Override
@@ -84,6 +80,11 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
         return joinedAttributeSpec(
                 joinInfoContainer,
                 (from, query, criteriaBuilder) -> from.get(attribute).isNull());
+    }
+
+    @Override
+    public <E> Specification<E> attributeIsNotNull(@NonNull SingularAttribute<? super E, ?> attribute) {
+        return not(attributeIsNull(attribute));
     }
 
     @Override
@@ -97,15 +98,9 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     public <E> Specification<E> attributeIn(@NonNull SingularAttribute<? super E, ?> attribute,
                                             @Nullable Collection<?> value) {
         return attributeIn(
-                JoinInfoContainer.empty(),
+                noJoins(),
                 attribute,
                 value);
-    }
-
-    @Override
-    public <E> Specification<E> attributeNotIn(@NonNull SingularAttribute<? super E, ?> attribute,
-                                               @NonNull Collection<?> value) {
-        return not(attributeIn(attribute, value));
     }
 
     @Override
@@ -117,6 +112,12 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                 joinedAttributeSpec(
                         joinInfoContainer,
                         (from, query, criteriaBuilder) -> from.get(attribute).in(value)));
+    }
+
+    @Override
+    public <E> Specification<E> attributeNotIn(@NonNull SingularAttribute<? super E, ?> attribute,
+                                               @NonNull Collection<?> value) {
+        return not(attributeIn(attribute, value));
     }
 
     @Override
@@ -154,7 +155,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     public <E, T> Specification<E> attributeEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                    @Nullable T value) {
         return attributeEquals(
-                JoinInfoContainer.empty(),
+                noJoins(),
                 attribute,
                 value);
     }
@@ -175,7 +176,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     public <E> Specification<E> attributeLikeIgnoreCase(@NonNull SingularAttribute<? super E, String> attribute,
                                                         @Nullable String value) {
         return attributeLikeIgnoreCase(
-                JoinInfoContainer.empty(),
+                noJoins(),
                 attribute,
                 value);
     }
@@ -200,25 +201,60 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
     public <E, T extends Comparable<? super T>> Specification<E> attributeGreaterOrEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                           @Nullable T value) {
 
+        return attributeGreaterOrEquals(
+                noJoins(),
+                attribute,
+                value);
+    }
+
+    @Override
+    public <E, G, T extends Comparable<? super T>> Specification<E> attributeGreaterOrEquals(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                                                             @NonNull SingularAttribute<G, T> attribute,
+                                                                                             @Nullable T value) {
         return nullIfParamIsNull(value,
 
-                (root, query, criteriaBuilder) ->
-                        criteriaBuilder.greaterThanOrEqualTo(root.get(attribute), value));
+                joinedAttributeSpec(
+                        joinInfoContainer,
+                        (from, query, criteriaBuilder) ->
+                                criteriaBuilder.greaterThanOrEqualTo(from.get(attribute), value)));
     }
 
     @Override
     public <E, T extends Comparable<? super T>> Specification<E> attributeLessOrEquals(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                        @Nullable T value) {
 
+        return attributeLessOrEquals(
+                noJoins(),
+                attribute,
+                value);
+    }
+
+    @Override
+    public <E, G, T extends Comparable<? super T>> Specification<E> attributeLessOrEquals(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                                                          @NonNull SingularAttribute<G, T> attribute,
+                                                                                          @Nullable T value) {
+
         return nullIfParamIsNull(value,
 
-                (root, query, criteriaBuilder) ->
-                        criteriaBuilder.lessThanOrEqualTo(root.get(attribute), value));
+                joinedAttributeSpec(
+                        joinInfoContainer,
+                        (from, query, criteriaBuilder) ->
+                                criteriaBuilder.lessThanOrEqualTo(from.get(attribute), value)));
     }
 
     @Override
     public <E, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(@NonNull SingularAttribute<? super E, T> attribute,
                                                                                         @Nullable Collection<Range<T>> ranges) {
+        return attributeInOneOfRanges(
+                noJoins(),
+                attribute,
+                ranges);
+    }
+
+    @Override
+    public <E, G, T extends Comparable<? super T>> Specification<E> attributeInOneOfRanges(@NonNull JoinInfoContainer<? super E, G> joinInfoContainer,
+                                                                                           @NonNull SingularAttribute<G, T> attribute,
+                                                                                           @Nullable Collection<Range<T>> ranges) {
         if (CollectionUtils.isEmpty(ranges)) {
             return null;
         }
@@ -227,8 +263,8 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
 
         for (Range<T> range : ranges) {
 
-            Specification<E> fromSpec = attributeGreaterOrEquals(attribute, range.getFrom());
-            Specification<E> toSpec = attributeLessOrEquals(attribute, range.getTo());
+            Specification<E> fromSpec = attributeGreaterOrEquals(joinInfoContainer, attribute, range.getFrom());
+            Specification<E> toSpec = attributeLessOrEquals(joinInfoContainer, attribute, range.getTo());
 
             specs = specs.or(
                     where(fromSpec).and(toSpec)
@@ -244,6 +280,19 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                                            @NonNull Nulls nulls) {
 
         return orderBy(
+                noJoins(),
+                (from, query, criteriaBuilder) -> from.get(attribute),
+                direction,
+                nulls);
+    }
+
+    @Override
+    public <E, T, G> Specification<E> orderBy(@NonNull JoinInfoContainer<E, G> joinInfoContainer,
+                                              @NonNull SingularAttribute<G, T> attribute,
+                                              @Nullable Direction direction,
+                                              @NonNull Nulls nulls) {
+        return orderBy(
+                joinInfoContainer,
                 (from, query, criteriaBuilder) -> from.get(attribute),
                 direction,
                 nulls);
@@ -254,7 +303,7 @@ public class BasicSpecificationsImpl implements BasicSpecifications {
                                         @Nullable Direction direction,
                                         @NonNull Nulls nulls) {
         return orderBy(
-                JoinInfoContainer.empty(),
+                noJoins(),
                 supplier,
                 direction,
                 nulls);
