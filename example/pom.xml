@@ -16,7 +16,7 @@
 
     <properties>
         <java.version>11</java.version>
-        <springspecwrapper.version>1.4.0-SNAPSHOT</springspecwrapper.version>
+        <springspecwrapper.version>1.4.0</springspecwrapper.version>
     </properties>
 
     <dependencies>
