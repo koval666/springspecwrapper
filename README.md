@@ -2,6 +2,8 @@ Spring spec wrapper
 ============================
 Library for convenient reuse of joins when building queries using Spring Data Specifications
 
+Inspired by this stackoverflow question: [click](https://stackoverflow.com/questions/21791793/query-from-combined-spring-data-specification-has-multiple-joins-on-same-table)
+
 ### Maven:
 
 ```xml
